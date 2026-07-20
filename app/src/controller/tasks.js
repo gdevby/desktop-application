@@ -7,7 +7,7 @@ const auth = require('../base/authentication');
 const Log = require('../utils/log');
 const OfflineMode = require('../base/offline-mode');
 const {UIError} = require('../utils/errors');
-const {resolveTaskActiveFlag, isTaskActive} = require('../utils/task-status');
+const {resolveTaskActiveFlag} = require('../utils/task-status');
 
 const log = new Log('Controller:Tasks');
 const taskEmitter = new EventEmitter();
@@ -142,6 +142,10 @@ module.exports.getTaskTodayTime = async taskId => {
  * @return {Promise<Model<any, any>[]>|Error}                     Returns array of projects if succeed
  */
 module.exports.getTasksList = async (highlight = false, onlyActive = true) => {
+
+  // Just return tasks from database if highlighting is not requested
+  if (!highlight)
+    return models.Task.findAll(buildTaskFetchOptions(onlyActive));
 
   // Get tasks
   const tasks = await models.Task.findAll(buildTaskFetchOptions(onlyActive));
