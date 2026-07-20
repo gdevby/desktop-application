@@ -7,6 +7,7 @@ const auth = require('../base/authentication');
 const Log = require('../utils/log');
 const OfflineMode = require('../base/offline-mode');
 const {UIError} = require('../utils/errors');
+const {resolveTaskActiveFlag, isTaskActive} = require('../utils/task-status');
 
 const log = new Log('Controller:Tasks');
 const taskEmitter = new EventEmitter();
@@ -32,7 +33,7 @@ const formatTasks = tasks => tasks.map(task => ({
   description: task.description,
   externalUrl: task.url,
   priority: task.priority_id,
-  status: task.active != undefined ? task.active : task.status_id,
+  status: resolveTaskActiveFlag(task),
   updatedAt: task.updated_at,
 
 }));
@@ -142,10 +143,6 @@ module.exports.getTaskTodayTime = async taskId => {
  */
 module.exports.getTasksList = async (highlight = false, onlyActive = true) => {
 
-  // Just return tasks from database if highlighting is not requested
-  if (!highlight)
-    return models.Task.findAll(buildTaskFetchOptions(onlyActive));
-
   // Get tasks
   const tasks = await models.Task.findAll(buildTaskFetchOptions(onlyActive));
 
@@ -217,7 +214,7 @@ module.exports.syncTasks = async (
   const currentUser = await auth.getCurrentUser();
   const taskOptions = {where: {'users.id': ['=', [currentUser.id]]}};
   if (onlyActive)
-    taskOptions.where.active = 1;
+    taskOptions.where['status.active'] = 1;
 
   let actualTasks = null;
 
