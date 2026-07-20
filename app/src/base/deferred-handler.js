@@ -1,13 +1,14 @@
 const IntervalsController = require('../controller/time-intervals');
 const TimeIntervalModel = require('../models').db.models.Interval;
 const Log = require('../utils/log');
+const { getErrorMessage, getRetryDelayMs, isRetryableError } = require('../utils/retryable-error');
 const OfflineMode = require('./offline-mode');
 const TaskTracker = require('./task-tracker');
 
 const log = new Log('DeferredHandler');
 
 const MAX_ATTEMPTS = 5;
-const RETRY_DELAY_MS = 3_000;
+const BETWEEN_INTERVALS_DELAY_MS = 300;
 
 /**
  * If deferred intervals push procedure is already running,
@@ -17,19 +18,6 @@ const RETRY_DELAY_MS = 3_000;
 let threadLock = false;
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-
-/**
- * @param {Error} error
- * @returns {Boolean}
- */
-const isRetryableError = error => error.isNetworkError
-  || error.message === 'Connect timeout'
-  || error.message === 'Read timeout'
-  || error.code === 'ECONNABORTED'
-  || error.code === 'ETIMEDOUT'
-  || error.code === 'ECONNRESET'
-  || error.code === 'ENOTFOUND'
-  || error.code === 'EAI_AGAIN';
 
 /**
  * Push single deferred interval with retries on transient failures
@@ -57,8 +45,9 @@ const pushIntervalWithRetry = async (preparedInterval, screenshot) => {
       if (!isRetryableError(error) || attempt === MAX_ATTEMPTS)
         throw error;
 
-      log.warning(`Interval push attempt ${attempt}/${MAX_ATTEMPTS} failed, retry in ${RETRY_DELAY_MS}ms`);
-      await sleep(RETRY_DELAY_MS);
+      const retryDelayMs = getRetryDelayMs(attempt);
+      log.warning(`Interval push attempt ${attempt}/${MAX_ATTEMPTS} failed, retry in ${retryDelayMs}ms`);
+      await sleep(retryDelayMs);
 
     }
 
@@ -72,7 +61,7 @@ const pushIntervalWithRetry = async (preparedInterval, screenshot) => {
  * Pushes deferred intervals
  * @param {Object} [options]
  * @param {Boolean} [options.manual=false] Manual sync initiated by user
- * @return {Promise<{synced: number, remaining: number, failed: number, error?: string}>}
+ * @return {Promise<{synced: number, remaining: number, failed: number, error?: string, lastError?: string}>}
  */
 const deferredIntervalsPush = async ({ manual = false } = {}) => {
 
@@ -104,9 +93,11 @@ const deferredIntervalsPush = async ({ manual = false } = {}) => {
 
     let synced = 0;
     let failed = 0;
+    let lastError = null;
 
-    // eslint-disable-next-line no-restricted-syntax
-    for await (const rawInterval of deferredIntervals) {
+    for (let index = 0; index < deferredIntervals.length; index += 1) {
+
+      const rawInterval = deferredIntervals[index];
 
       /* eslint camelcase: 0 */
       const preparedInterval = {
@@ -149,10 +140,14 @@ const deferredIntervalsPush = async ({ manual = false } = {}) => {
         if (isRetryableError(error))
           OfflineMode.trigger();
 
+        lastError = getErrorMessage(error);
         log.warning(`Error occured during deferred interval push: ${error}`);
         failed += 1;
 
       }
+
+      if (index < deferredIntervals.length - 1)
+        await sleep(BETWEEN_INTERVALS_DELAY_MS);
 
     }
 
@@ -164,6 +159,9 @@ const deferredIntervalsPush = async ({ manual = false } = {}) => {
       log.debug('Deferred intervals queue is empty, nice work');
 
     const result = { synced, remaining, failed };
+
+    if (failed > 0)
+      result.lastError = lastError;
 
     if (manual && synced === 0 && failed > 0)
       result.error = 'Failed to sync intervals';
@@ -181,4 +179,3 @@ const deferredIntervalsPush = async ({ manual = false } = {}) => {
 module.exports = { deferredIntervalsPush };
 
 OfflineMode.on('connection-restored', () => deferredIntervalsPush());
-OfflineMode.once('connection-ok', () => deferredIntervalsPush());

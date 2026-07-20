@@ -5,13 +5,15 @@ const keychain = require('../utils/keychain');
 
 const CONNECT_TIMEOUT_MS = 10_000;
 const READ_TIMEOUT_MS = 30_000;
+const SCREENSHOT_READ_TIMEOUT_MS = 90_000;
 
 /**
  * HTTP(S) agent with connect and read socket timeouts
  * @param {Function} AgentClass http.Agent or https.Agent
+ * @param {Number} [readTimeoutMs=READ_TIMEOUT_MS]
  * @returns {http.Agent|https.Agent}
  */
-function createAgentWithTimeouts(AgentClass) {
+function createAgentWithTimeouts(AgentClass, readTimeoutMs = READ_TIMEOUT_MS) {
 
   const agent = new AgentClass({ keepAlive: true });
   const originalCreateConnection = agent.createConnection.bind(agent);
@@ -22,7 +24,7 @@ function createAgentWithTimeouts(AgentClass) {
 
     if (socket) {
 
-      socket.setTimeout(READ_TIMEOUT_MS);
+      socket.setTimeout(readTimeoutMs);
       socket.on('timeout', () => socket.destroy(new Error('Read timeout')));
 
       const connectTimer = setTimeout(() => {
@@ -46,6 +48,10 @@ const api = new Cattr();
 api.axiosConfiguration.httpAgent = createAgentWithTimeouts(http.Agent);
 api.axiosConfiguration.httpsAgent = createAgentWithTimeouts(https.Agent);
 api.axiosConfiguration.timeout = READ_TIMEOUT_MS;
+
+api.screenshotHttpAgent = createAgentWithTimeouts(http.Agent, SCREENSHOT_READ_TIMEOUT_MS);
+api.screenshotHttpsAgent = createAgentWithTimeouts(https.Agent, SCREENSHOT_READ_TIMEOUT_MS);
+api.screenshotRequestTimeout = SCREENSHOT_READ_TIMEOUT_MS;
 
 api.tokenProvider = {
 

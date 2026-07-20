@@ -30,6 +30,21 @@
         <p class="section__heading">{{ $t("You've %% not synced intervals.").replaceAll('%%', notSyncedAmount) }}</p>
         <el-button
             size="small"
+            type="success"
+            :loading="syncInProgress"
+            :disabled="notSyncedAmount === 0 || syncInProgress"
+            @click="syncIntervals"
+        >
+          {{ $t('Send to server') }}
+        </el-button>
+        <br>
+        <small
+          v-if="lastSyncMessage"
+          class="section__description"
+        >{{ lastSyncMessage }}</small>
+        <br>
+        <el-button
+            size="small"
             type="primary"
             :disabled="notSyncedAmount === 0"
             @click="exportIntervals"
@@ -84,7 +99,9 @@ export default {
   data() {
 
     return {
-      fileList: []
+      fileList: [],
+      syncInProgress: false,
+      lastSyncMessage: null,
     };
 
   },
@@ -111,6 +128,89 @@ export default {
   },
 
   methods: {
+    async syncIntervals() {
+
+      this.syncInProgress = true;
+      this.lastSyncMessage = null;
+
+      try {
+
+        const intervalsRes = await this.$ipc.request('interval/push-deferred', {}, 0);
+
+        const amountRes = await this.$ipc.request('interval/not-synced-amount', {});
+
+        if (amountRes.code === 200)
+          this.$store.commit('notSyncedAmount', { amount: amountRes.body.amount });
+
+        if (intervalsRes.code === 200) {
+
+          const { synced, failed, lastError } = intervalsRes.body;
+          const attempted = synced + failed;
+
+          if (synced > 0 && failed === 0) {
+
+            this.lastSyncMessage = this.$t('%% intervals synced successfully').replaceAll('%%', synced);
+            this.$message({ type: 'success', message: this.lastSyncMessage });
+
+          } else if (synced > 0 && failed > 0) {
+
+            this.lastSyncMessage = this.withLastSyncError(
+              this.$t('%% of %% intervals synced')
+                .replace('%%', synced)
+                .replace('%%', attempted),
+              lastError,
+            );
+            this.$message({ type: 'warning', message: this.lastSyncMessage });
+
+          } else if (failed > 0) {
+
+            this.lastSyncMessage = this.withLastSyncError(
+              this.$t('%% intervals failed to sync').replaceAll('%%', failed),
+              lastError,
+            );
+            this.$message({ type: 'warning', message: this.lastSyncMessage });
+
+          } else {
+
+            this.lastSyncMessage = this.$t('Nothing to sync');
+
+          }
+
+        } else if (intervalsRes.code === 503) {
+
+          this.lastSyncMessage = this.withLastSyncError(
+            this.$t(intervalsRes.body.message || 'Failed to sync intervals'),
+            intervalsRes.body.lastError,
+          );
+          await this.triggerErrorAlert({ message: this.lastSyncMessage }, this.$t('Failed to sync intervals'));
+
+        } else {
+
+          this.lastSyncMessage = this.$t('Failed to sync intervals');
+          await this.triggerErrorAlert({ message: this.lastSyncMessage }, this.$t('Failed to sync intervals'));
+
+        }
+
+      } catch (error) {
+
+        this.lastSyncMessage = this.$t('Failed to sync intervals');
+        this.$message({ type: 'error', message: this.lastSyncMessage });
+
+      } finally {
+
+        this.syncInProgress = false;
+
+      }
+
+    },
+    withLastSyncError(message, lastError) {
+
+      if (!lastError)
+        return message;
+
+      return `${message}. ${this.$t('Last error: %%').replace('%%', lastError)}`;
+
+    },
     handleRemove(file) {
       const fileFromInput = this.$refs.tasks_file_input.$el.querySelector('input');
       if (file?.raw?.uid != null && file?.raw?.uid === fileFromInput?.files[0]?.uid) {

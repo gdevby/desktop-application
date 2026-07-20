@@ -6,6 +6,7 @@ const database = require('../models').db.models;
 const sequelize = require('../models').db.sequelize;
 const Log = require('../utils/log');
 const OfflineMode = require('../base/offline-mode');
+const { isRetryableError } = require('../utils/retryable-error');
 const {Op} = require("sequelize");
 
 const log = new Log('Controller:Time-Intervals');
@@ -256,28 +257,29 @@ module.exports.pushTimeInterval = async (interval, intervalScreenshot) => {
 
     log.debug('Interval was synced');
 
-    // Trigger connection restore in OfflineMode
-    // OPTIMIZE: Can trigger deferredIntervalsPush and intervals will be send for second time
     OfflineMode.restoreWithCheck();
 
     return pushedInterval;
 
   } catch (error) {
 
-    // Do not backup deferred intervals
+    // Do not backup deferred intervals — deferred-handler owns retries
     if (interval._isDeferred)
       throw error;
 
-    // Trigger offline mode in case of network error
-    if (error.isNetworkError) {
+    if (isRetryableError(error)) {
 
       OfflineMode.trigger();
-      log.warning('Backing up time interval request due and triggering the offline mode');
+      log.warning('Backing up time interval due to transient error and triggering offline mode');
       return module.exports.backupInterval({ ...interval }, intervalScreenshot);
 
-    } else if (error.isApiError) {
+    }
+
+    if (error.isApiError) {
+
       log.warning('Backing up time interval request');
-      module.exports.backupInterval({ ...interval }, intervalScreenshot);
+      await module.exports.backupInterval({ ...interval }, intervalScreenshot);
+
     }
 
     error.context = actualInterval;
@@ -317,76 +319,6 @@ module.exports.destroyInterval = async intervalId => {
 
     log.error('Error during interval destroy', error);
     throw error;
-
-  }
-
-};
-
-/**
- * Push all backed up intervals
- */
-module.exports.backedUpIntervalsPush = async () => {
-
-  // Check for backed up intervals
-  const backedUpIntervals = await database.Interval.findAll({
-    where: { synced: false },
-  });
-
-  // If any of them presented
-  if (backedUpIntervals) {
-
-    // Collecting promises
-    const intervalPushPromises = [];
-    backedUpIntervals.forEach(interval => {
-
-      const formattedInterval = {
-        task_id: interval.taskId,
-        start_at: interval.startAt,
-        end_at: interval.endAt,
-        user_id: interval.userId,
-        activity_fill: interval.systemActivity,
-      };
-
-      if (interval.keyboardActivity)
-        formattedInterval.keyboard_fill = interval.keyboardActivity;
-
-      if (interval.mouseActivity)
-        formattedInterval.mouse_fill = interval.mouseActivity;
-
-      intervalPushPromises.push(module.exports.pushTimeInterval(formattedInterval, interval.screenshot));
-
-    });
-
-    try {
-
-      // Pushing all the intervals
-      log.debug('Backed up intervals push initiated:');
-      await Promise.all(intervalPushPromises);
-      log.debug('Backed up intervals pushed successfully!');
-
-    } catch (error) {
-
-      log.error('Error during backed up intervals deffered push', error);
-      throw error;
-
-    }
-
-    try {
-
-      // Deleting synced intervals from local storage
-      log.debug('Deleting backed up intervals...');
-      await database.Interval.destroy({
-        where: {},
-        truncate: true,
-      });
-      log.debug('Backed up intervals deleted successfully!');
-
-    } catch (error) {
-
-      log.error('Error during backed up intervals delete', error);
-      throw error;
-
-    }
 
   }
 

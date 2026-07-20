@@ -1,5 +1,6 @@
 const { Tray, Menu, app } = require('electron');
 const Logger = require('../utils/log');
+const config = require('../base/config');
 const osIntegration = require('../base/os-integration');
 const taskController = require('../controller/tasks');
 const tracker = require('../base/task-tracker');
@@ -21,7 +22,7 @@ const setMacDockIcon = icon => {
 };
 
 const tray = new Tray(ICONS_PATHS.tray.LOADING);
-tray.setToolTip('Cattr');
+tray.setToolTip(config.applicationTitle);
 setMacDockIcon(ICONS_PATHS.dock.LOADING);
 
 let selectedTaskId = null;

@@ -60,6 +60,7 @@ app.once('ready', async () => {
     show: false,
     center: true,
     maximizable: false,
+    title: config.applicationTitle,
     webPreferences: {
       nodeIntegration: true,
       enableRemoteModule: false,
@@ -106,7 +107,7 @@ app.once('ready', async () => {
     sentryConfiguration = encodeURIComponent(JSON.stringify(sentryConfiguration));
 
     // Load this page
-    window.loadURL(`file://${pathToPage}?sentry=${sentryConfiguration}`);
+    window.loadURL(`file://${pathToPage}?sentry=${sentryConfiguration}&v=${encodeURIComponent(config.packageVersion)}`);
     return true;
 
   };

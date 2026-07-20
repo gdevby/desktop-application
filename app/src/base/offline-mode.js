@@ -119,6 +119,9 @@ class OfflineModeHandler extends EventEmitter {
     // Reset state
     this._isEnabled = false;
 
+    if (this.trackingActive)
+      heartbeatMonitor.start();
+
     // Emit reconnection event
     this.emit('connection-restored');
 
@@ -140,8 +143,8 @@ class OfflineModeHandler extends EventEmitter {
     if (this._isEnabled && connectivityEstablished)
       this.restore();
 
-    // If the tracking is enabled and the connection is restored, we start the heartbeat again
-    if (this.heartbeatEnabled && connectivityEstablished)
+    // If tracking is active and the connection is restored, start the heartbeat again
+    if (this.trackingActive && connectivityEstablished)
       heartbeatMonitor.start();
 
   }

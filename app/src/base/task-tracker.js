@@ -658,23 +658,8 @@ class TaskTracker extends EventEmitter {
 
       } catch (error) {
 
-        // Check is this server connectivity error
-        if (error.request) {
-
-          // Trigger offline mode
-          OfflineMode.trigger();
-
-          // Backup data to local DB
-          await IntervalsController.backupInterval(interval, intervalScreenshot);
-
-        } else {
-
-          // Bypass non-connectivity errors
-          throw error;
-
-        }
-
-        return false;
+        // pushTimeInterval already backs up transient failures
+        throw error;
 
       }
 

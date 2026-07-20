@@ -156,22 +156,36 @@ export default {
 
         if (intervalsRes.code === 200) {
 
-          const { synced, failed } = intervalsRes.body;
+          const { synced, failed, lastError } = intervalsRes.body;
+          const attempted = synced + failed;
 
-          if (synced > 0) {
+          if (synced > 0 && failed === 0) {
 
             this.$message({
               type: 'success',
               message: this.$t('%% intervals synced successfully').replaceAll('%%', synced),
             });
 
-          }
-
-          if (failed > 0) {
+          } else if (synced > 0 && failed > 0) {
 
             this.$message({
               type: 'warning',
-              message: this.$t('%% intervals failed to sync').replaceAll('%%', failed),
+              message: this.withLastSyncError(
+                this.$t('%% of %% intervals synced')
+                  .replace('%%', synced)
+                  .replace('%%', attempted),
+                lastError,
+              ),
+            });
+
+          } else if (failed > 0) {
+
+            this.$message({
+              type: 'warning',
+              message: this.withLastSyncError(
+                this.$t('%% intervals failed to sync').replaceAll('%%', failed),
+                lastError,
+              ),
             });
 
           }
@@ -180,7 +194,10 @@ export default {
 
           this.$message({
             type: 'error',
-            message: this.$t(intervalsRes.body.message || 'Failed to sync intervals'),
+            message: this.withLastSyncError(
+              this.$t(intervalsRes.body.message || 'Failed to sync intervals'),
+              intervalsRes.body.lastError,
+            ),
           });
 
         } else if (intervalsRes.code !== 200) {
@@ -204,6 +221,15 @@ export default {
         this.syncInProgress = false;
 
       }
+
+    },
+
+    withLastSyncError(message, lastError) {
+
+      if (!lastError)
+        return message;
+
+      return `${message}. ${this.$t('Last error: %%').replace('%%', lastError)}`;
 
     },
 

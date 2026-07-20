@@ -174,7 +174,11 @@
     "Tracking features": "Отслеживание активности",
     "%% intervals synced successfully": "Отправлено интервалов: %%",
     "%% intervals failed to sync": "Не удалось синхронизировать интервалов: %%",
+    "%% of %% intervals synced": "Синхронизировано %% из %% интервалов",
     "Failed to sync intervals": "Не удалось синхронизировать интервалы",
-    "Sync already in progress": "Синхронизация уже выполняется"
+    "Sync already in progress": "Синхронизация уже выполняется",
+    "Send to server": "Отправить на сервер",
+    "Nothing to sync": "Нечего синхронизировать",
+    "Last error: %%": "Последняя ошибка: %%"
   }
 }

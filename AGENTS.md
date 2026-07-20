@@ -197,6 +197,26 @@ Platform constraints: macOS hosts build macOS only; Linux can build Linux + Wind
 
 No automated test suite exists. After changes, run `yarn lint` and manually verify affected flows in `yarn dev`.
 
+### Interval sync and offline queue
+
+When the network is unstable, interval capture follows this flow:
+
+1. `task-tracker.captureCurrentInterval` saves local time, then calls `pushTimeInterval`.
+2. On transient failure (`retryable-error.js`: network errors, timeouts, HTTP 502/503/504/429), the interval is stored in SQLite (`synced: false`) and offline mode is enabled.
+3. When connectivity is restored, `deferred-handler` pushes the queue sequentially with exponential backoff (up to 5 attempts per interval).
+4. Manual sync: refresh button in the task list (`ControlBar`) or **Send to server** on the Offline Sync page (`interval/push-deferred`).
+
+Screenshot uploads use a longer read timeout (90s) via dedicated HTTP agents in `base/api.js`.
+
+**Known limitation (no server changes):** if the server creates an interval but the response is lost, the client may send a duplicate on the next sync. Full idempotency requires server-side `client_id` support.
+
+Manual verification checklist:
+
+- Track with network disabled → `notSyncedAmount` increases.
+- Restore network → queue syncs automatically.
+- Manual sync with flaky network → partial success message in UI.
+- Interval with screenshot on a slow connection does not fail at 30s.
+
 ## Documentation map
 
 | Resource | Purpose |

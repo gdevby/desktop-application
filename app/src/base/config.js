@@ -23,12 +23,14 @@ const packageId = isDeveloperModeEnabled ? 'cattr-develop' : 'cattr';
  * @type {String}
  */
 const packageVersion = packageManifest.version;
+const applicationTitle = `Cattr ${packageVersion}`;
 
 // Basic configuration
 const configuration = {
 
   packageId,
   packageVersion,
+  applicationTitle,
 
   // Application data directory
   appdata: isDeveloperModeEnabled ? app.getPath('userData').concat('-develop') : app.getPath('userData'),

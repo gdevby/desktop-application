@@ -31,6 +31,8 @@ export default {
 
   async mounted() {
 
+    this.updateWindowTitle();
+
     /* Trigger update check */
     try {
 
@@ -142,9 +144,6 @@ export default {
     });
 
     this.$store.dispatch('showLoader');
-    if (this.$i18n.locale === 'ru')
-      document.title = this.$t('Cattr');
-
     const auth = await this.$ipc.request('auth/is-authentication-required', {});
     this.$store.commit('setAuthenticatedStatus', !auth.body.required);
 
@@ -192,6 +191,13 @@ export default {
   },
 
   methods: {
+    updateWindowTitle() {
+
+      const version = new URLSearchParams(window.location.search).get('v');
+      document.title = version ? `${this.$t('Cattr')} ${version}` : this.$t('Cattr');
+
+    },
+
     closeWindow() {
 
       this.$ipc.emit('window/controls-close', {});
