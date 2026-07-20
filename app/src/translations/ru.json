@@ -171,6 +171,10 @@
     "Capturing desktop screenshots": "Запись скриншотов рабочего стола",
     "Capturing desktop screenshots is disabled (except specific projects)": "Запись скриншотов рабочего стола отключена (кроме определенных проектов)",
     "Reach your company administrator for more info.": "Если у вас есть вопросы, свяжитесь с администратором компании.",
-    "Tracking features": "Отслеживание активности"
+    "Tracking features": "Отслеживание активности",
+    "%% intervals synced successfully": "Отправлено интервалов: %%",
+    "%% intervals failed to sync": "Не удалось синхронизировать интервалов: %%",
+    "Failed to sync intervals": "Не удалось синхронизировать интервалы",
+    "Sync already in progress": "Синхронизация уже выполняется"
   }
 }

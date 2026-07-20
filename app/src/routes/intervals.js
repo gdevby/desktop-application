@@ -1,5 +1,6 @@
 const Logger = require('../utils/log');
 const Interval = require('../controller/time-intervals');
+const { deferredIntervalsPush } = require('../base/deferred-handler');
 const TaskTracker = require('../base/task-tracker');
 const {zip} = require("fflate");
 const log = new Logger('Router:Intervals');
@@ -169,6 +170,27 @@ module.exports = router => {
           error: JSON.parse(JSON.stringify(error)),
         }
       );
+
+    }
+
+  });
+
+  /* Push deferred intervals to server */
+  router.serve('interval/push-deferred', async req => {
+
+    try {
+
+      const result = await deferredIntervalsPush({ manual: true });
+
+      if (result.error && result.synced === 0)
+        return req.send(503, { message: result.error, ...result });
+
+      return req.send(200, result);
+
+    } catch (error) {
+
+      log.error('ERTINT04', 'Error occurred during deferred intervals push', error);
+      return req.send(500, { message: 'Failed to sync intervals' });
 
     }
 

@@ -6,6 +6,9 @@ const TaskTracker = require('./task-tracker');
 
 const log = new Log('DeferredHandler');
 
+const MAX_ATTEMPTS = 5;
+const RETRY_DELAY_MS = 3_000;
+
 /**
  * If deferred intervals push procedure is already running,
  * we should lock this from more executions to avoid collisions
@@ -13,38 +16,98 @@ const log = new Log('DeferredHandler');
  */
 let threadLock = false;
 
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
 /**
- * Pushes deferred intervals
- * @return {Promise<Boolean|Error>} True, if everything is pushed, error otherwise
+ * @param {Error} error
+ * @returns {Boolean}
  */
-const deferredIntervalsPush = async () => {
+const isRetryableError = error => error.isNetworkError
+  || error.message === 'Connect timeout'
+  || error.message === 'Read timeout'
+  || error.code === 'ECONNABORTED'
+  || error.code === 'ETIMEDOUT'
+  || error.code === 'ECONNRESET'
+  || error.code === 'ENOTFOUND'
+  || error.code === 'EAI_AGAIN';
 
-  // Check thread lock
-  if (threadLock)
-    return;
+/**
+ * Push single deferred interval with retries on transient failures
+ * @param {Object} preparedInterval
+ * @param {Buffer} [screenshot]
+ * @returns {Promise<Object>}
+ */
+const pushIntervalWithRetry = async (preparedInterval, screenshot) => {
 
-  // Locking thread
-  threadLock = true;
+  let lastError;
 
-  // Getting all deferred intervals
-  const deferredIntervals = await TimeIntervalModel.findAll({ where: { synced: false } });
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
 
-  // Skip sync routine if there are no deffered intervals
-  if (deferredIntervals.length === 0) {
+    try {
 
-    threadLock = false;
-    return;
+      if (screenshot)
+        return await IntervalsController.pushTimeInterval(preparedInterval, screenshot);
+
+      return await IntervalsController.pushTimeInterval(preparedInterval);
+
+    } catch (error) {
+
+      lastError = error;
+
+      if (!isRetryableError(error) || attempt === MAX_ATTEMPTS)
+        throw error;
+
+      log.warning(`Interval push attempt ${attempt}/${MAX_ATTEMPTS} failed, retry in ${RETRY_DELAY_MS}ms`);
+      await sleep(RETRY_DELAY_MS);
+
+    }
 
   }
 
-  // Catching all the deferred intervals errors
+  throw lastError;
+
+};
+
+/**
+ * Pushes deferred intervals
+ * @param {Object} [options]
+ * @param {Boolean} [options.manual=false] Manual sync initiated by user
+ * @return {Promise<{synced: number, remaining: number, failed: number, error?: string}>}
+ */
+const deferredIntervalsPush = async ({ manual = false } = {}) => {
+
+  if (threadLock) {
+
+    if (manual)
+      return {
+        synced: 0,
+        remaining: await TimeIntervalModel.count({ where: { synced: false } }),
+        failed: 0,
+        error: 'Sync already in progress',
+      };
+
+    return { synced: 0, remaining: 0, failed: 0 };
+
+  }
+
+  threadLock = true;
+
   try {
 
-    // Iterating over deferred intervals
+    if (manual)
+      await OfflineMode.restoreWithCheck();
+
+    const deferredIntervals = await TimeIntervalModel.findAll({ where: { synced: false } });
+
+    if (deferredIntervals.length === 0)
+      return { synced: 0, remaining: 0, failed: 0 };
+
+    let synced = 0;
+    let failed = 0;
+
     // eslint-disable-next-line no-restricted-syntax
     for await (const rawInterval of deferredIntervals) {
 
-      // Prepare interval structure
       /* eslint camelcase: 0 */
       const preparedInterval = {
 
@@ -63,61 +126,59 @@ const deferredIntervalsPush = async () => {
       if (rawInterval.keyboardActivity)
         preparedInterval.keyboard_fill = rawInterval.keyboardActivity;
 
-      // Push deferred interval
-      let res = null;
+      try {
 
-      if (rawInterval.screenshot)
-        res = await IntervalsController.pushTimeInterval(preparedInterval);
-      else
-        res = await IntervalsController.pushTimeInterval(preparedInterval, rawInterval.screenshot);
+        const res = await pushIntervalWithRetry(preparedInterval, rawInterval.screenshot || undefined);
 
-      log.debug(`Deferred interval (${res.response.data.id}) has been pushed`);
+        log.debug(`Deferred interval (${res.response.data.id}) has been pushed`);
 
-      // Update interval status
-      rawInterval.synced = true;
-      rawInterval.remoteId = res.response.data.id;
-      await rawInterval.save();
+        rawInterval.synced = true;
+        rawInterval.remoteId = res.response.data.id;
+        await rawInterval.save();
 
-      // Will trigger 'Not Synced Intervals' count
-      TaskTracker.emit('interval-pushed', {
-        deferred: true
-      });
+        synced += 1;
 
-      // Remove old intervals from queue
-      await IntervalsController.reduceSyncedIntervalQueue();
+        TaskTracker.emit('interval-pushed', {
+          deferred: true,
+        });
 
-    }
+        await IntervalsController.reduceSyncedIntervalQueue();
 
-    // That's all
-    log.debug('Deferred screenshots queue is empty, nice work');
+      } catch (error) {
 
-  } catch (error) {
+        if (isRetryableError(error))
+          OfflineMode.trigger();
 
-    // Handle connectivity errors
-    if (error.request && !error.response) {
+        log.warning(`Error occured during deferred interval push: ${error}`);
+        failed += 1;
 
-      // Trigger offline mode then exit
-      OfflineMode.trigger();
-
-      // Unlocking thread
-      threadLock = false;
-
-      // Ignore this error
-      return;
+      }
 
     }
 
-    // Log other errors
-    log.warning(`Error occured during deferred intervals push: ${error}`);
-    throw error;
+    const remaining = await TimeIntervalModel.count({ where: { synced: false } });
+
+    if (failed > 0)
+      log.debug(`Deferred intervals push finished: synced=${synced}, failed=${failed}, remaining=${remaining}`);
+    else
+      log.debug('Deferred intervals queue is empty, nice work');
+
+    const result = { synced, remaining, failed };
+
+    if (manual && synced === 0 && failed > 0)
+      result.error = 'Failed to sync intervals';
+
+    return result;
+
+  } finally {
+
+    threadLock = false;
 
   }
 
-  // Unlocking thread
-  threadLock = false;
-
 };
 
-// Push deferred intervals if connection is restored
-OfflineMode.on('connection-restored', deferredIntervalsPush);
-OfflineMode.once('connection-ok', deferredIntervalsPush);
+module.exports = { deferredIntervalsPush };
+
+OfflineMode.on('connection-restored', () => deferredIntervalsPush());
+OfflineMode.once('connection-ok', () => deferredIntervalsPush());

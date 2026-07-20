@@ -2,6 +2,10 @@
   "lang": "en",
   "title": "English",
   "translation": {
-    "hello": "HEEEEELOOO"
+    "hello": "HEEEEELOOO",
+    "%% intervals synced successfully": "%% intervals synced successfully",
+    "%% intervals failed to sync": "%% intervals failed to sync",
+    "Failed to sync intervals": "Failed to sync intervals",
+    "Sync already in progress": "Sync already in progress"
   }
 }

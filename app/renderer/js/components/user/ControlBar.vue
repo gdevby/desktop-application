@@ -135,17 +135,75 @@ export default {
     },
 
     async sync() {
-      // TODO:
-      //  [ ] send deferred here?
 
       this.syncInProgress = true;
-      await this.$ipc.request('projects/sync', {});
-      const tasks = await this.$ipc.request('tasks/sync', {});
-      const totalTime = await this.$ipc.request('time/total', {});
-      this.$store.dispatch('totalTimeSync', totalTime.body);
-      this.$store.dispatch('syncTasks', tasks.body);
-      await this.$ipc.request('misc/update-tracking-features', {});
-      this.syncInProgress = false;
+
+      try {
+
+        await this.$ipc.request('projects/sync', {});
+        const tasks = await this.$ipc.request('tasks/sync', {});
+        const intervalsRes = await this.$ipc.request('interval/push-deferred', {}, 0);
+        const totalTime = await this.$ipc.request('time/total', {});
+
+        this.$store.dispatch('totalTimeSync', totalTime.body);
+        this.$store.dispatch('syncTasks', tasks.body);
+        await this.$ipc.request('misc/update-tracking-features', {});
+
+        const amountRes = await this.$ipc.request('interval/not-synced-amount', {});
+
+        if (amountRes.code === 200)
+          this.$store.commit('notSyncedAmount', { amount: amountRes.body.amount });
+
+        if (intervalsRes.code === 200) {
+
+          const { synced, failed } = intervalsRes.body;
+
+          if (synced > 0) {
+
+            this.$message({
+              type: 'success',
+              message: this.$t('%% intervals synced successfully').replaceAll('%%', synced),
+            });
+
+          }
+
+          if (failed > 0) {
+
+            this.$message({
+              type: 'warning',
+              message: this.$t('%% intervals failed to sync').replaceAll('%%', failed),
+            });
+
+          }
+
+        } else if (intervalsRes.code === 503) {
+
+          this.$message({
+            type: 'error',
+            message: this.$t(intervalsRes.body.message || 'Failed to sync intervals'),
+          });
+
+        } else if (intervalsRes.code !== 200) {
+
+          this.$message({
+            type: 'error',
+            message: this.$t('Failed to sync intervals'),
+          });
+
+        }
+
+      } catch (error) {
+
+        this.$message({
+          type: 'error',
+          message: this.$t('Failed to sync intervals'),
+        });
+
+      } finally {
+
+        this.syncInProgress = false;
+
+      }
 
     },
 
