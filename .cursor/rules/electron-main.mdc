@@ -1,0 +1,60 @@
+---
+description: Electron main process patterns (routes, controllers, models)
+globs: app/src/**/*.js
+alwaysApply: false
+---
+
+# Main process conventions
+
+## Layering
+
+```
+routes/  →  controller/  →  models/ | base/
+```
+
+- **routes/** — IPC handlers only: parse `request.packet.body`, call controller, `request.send(status, body)`
+- **controller/** — business logic, no direct IPC calls
+- **base/** — singleton services (`task-tracker`, `authentication`, `offline-mode`, `api`)
+- **models/** — Sequelize definitions; schema changes need a new file in `migrations/`
+
+## IPC
+
+Use `@amazingcat/electron-ipc-router` with `namespace/action` route names:
+
+```javascript
+router.serve('tasks/list', async request => { /* ... */ });
+```
+
+Register new route files in [app/src/routes/index.js](app/src/routes/index.js).
+
+## Error handling
+
+```javascript
+const { UIError } = require('../utils/errors');
+
+// Expected user-facing errors → pass through
+if (error instanceof UIError)
+  return request.send(error.code, { message: error.message, id: error.errorId, error: error.error });
+
+// Unexpected → log and return 500 with error id
+log.error('...', error);
+request.send(500, { message: 'Internal error occured', id: 'ERxxx500' });
+```
+
+## Logging
+
+```javascript
+const Logger = require('../utils/log');
+const log = new Logger('ModuleName');
+```
+
+## Sequelize
+
+- Access models via `require('../models').db.models`
+- Strip Sequelize metadata before IPC response (see `purifyInstances` in routes/tasks.js)
+- New migration: timestamped file in `migrations/`, run automatically on startup via Umzug
+
+## API
+
+- Cattr server client: [app/src/base/api.js](app/src/base/api.js) (`@cattr/node` + keychain providers)
+- Config paths and feature flags: [app/src/base/config.js](app/src/base/config.js)

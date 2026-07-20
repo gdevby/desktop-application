@@ -1,0 +1,45 @@
+---
+description: Vue 2 renderer patterns (components, Vuex, IPC)
+globs: app/renderer/**/*.{js,vue}
+alwaysApply: false
+---
+
+# Renderer conventions
+
+## Stack
+
+- **Vue 2.7** + **Vuex 3** + **Vue Router 3** + **Element UI 2** + **vue-i18n 8**
+- Entry: [app/renderer/js/app.js](app/renderer/js/app.js) → bundled to `build/app.js`
+
+## IPC from components
+
+Access via `this.$ipc` (set in app.js):
+
+```javascript
+const { body } = await this.$ipc.request('tasks/list', { projectId });
+```
+
+Match route names to handlers in `app/src/routes/`. Add both sides when introducing a new endpoint.
+
+## State management
+
+- Global state: [app/renderer/js/storage/store.js](app/renderer/js/storage/store.js) (Vuex)
+- Prefer Vuex actions for IPC calls and shared state; keep components thin
+- Routes: [app/renderer/js/router/routes.js](app/renderer/js/router/routes.js)
+
+## Components
+
+- Layout: `app/renderer/js/components/`
+- User area: `components/user/` (tasks, settings, intervals, offline sync)
+- Use Element UI (`el-button`, `el-row`, etc.) — match existing markup style
+- User-visible strings: `$t('key')` — add keys to `app/src/translations/en.json` and `ru.json`
+
+## Styles
+
+- Global SCSS: [app/renderer/scss/app.scss](app/renderer/scss/app.scss) and `imports/`
+- Component-scoped styles in `.vue` files when needed
+- Rebuild styles: `yarn build-development`
+
+## Sentry
+
+Initialized in app.js from query param injected by main process. Do not hardcode DSN in renderer.
