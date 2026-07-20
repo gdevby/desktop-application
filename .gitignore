@@ -108,3 +108,5 @@ build
 !.yarn/sdks
 !.yarn/versions
 .pnp.*
+/.project
+.settings/

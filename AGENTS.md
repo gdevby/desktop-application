@@ -2,6 +2,8 @@
 
 Instructions for AI coding agents working in this repository.
 
+> **Monorepo:** shared context and Cursor rules live in [AGENTS.md](../AGENTS.md) and [`.cursor/rules/`](../.cursor/rules/).
+>
 > **Cursor tip:** If project context seems missing, start your chat with `@AGENTS.md`.
 
 ## Project overview
@@ -205,9 +207,14 @@ No automated test suite exists. After changes, run `yarn lint` and manually veri
 
 ## Cursor context layers
 
+When workspace is monorepo root (`cattr/`):
+
 | File | When it applies |
 |------|-----------------|
-| **AGENTS.md** (this file) | Repo-wide architecture, build, IPC, agent workflow |
-| `.cursor/rules/project-core.mdc` | Every session — global conventions |
-| `.cursor/rules/electron-main.mdc` | `app/src/**/*.js` — main process |
-| `.cursor/rules/vue-renderer.mdc` | `app/renderer/**/*.{js,vue}` — frontend |
+| [AGENTS.md](../AGENTS.md) | Monorepo index |
+| `.cursor/rules/monorepo-core.mdc` | Every session |
+| `.cursor/rules/desktop-stack.mdc` | `desktop-application/**` |
+| `.cursor/rules/desktop-electron-main.mdc` | `desktop-application/app/src/**` |
+| `.cursor/rules/desktop-vue-renderer.mdc` | `desktop-application/app/renderer/**` |
+
+When workspace is this directory only, local `.cursor/rules/` apply with relative globs.

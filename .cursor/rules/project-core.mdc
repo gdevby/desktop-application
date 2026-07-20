@@ -1,33 +1,16 @@
 ---
-description: Core conventions for Cattr Desktop (Electron + Vue)
+description: "[standalone] Core rules — when workspace=cattr/ see monorepo root"
 alwaysApply: true
 ---
 
-# Cattr Desktop — core rules
+# Standalone workspace note
 
-## Stack constraints
+When workspace is `cattr/` (monorepo), rules load from `cattr/.cursor/rules/`.
+This file applies only when opening `desktop-application/` as the workspace root.
 
-- **Node 14.19.0**, **Electron 14.2.9**, **Vue 2.7** — do not upgrade casually.
-- Package manager: **Yarn 3** (`packageManager` in package.json).
+Shared conventions: [AGENTS.md](../../../AGENTS.md)
 
-## Code style
-
-- Match ESLint in package.json: airbnb-base + vue/recommended, padded blocks, `object-curly-spacing: always`, max line 120.
-- Main process (`app/src/`): CommonJS. Renderer (`app/renderer/`): ES modules.
-- Never edit generated dirs: `build/`, `target/`, `node_modules/`.
-
-## Change discipline
-
-- Minimal diffs; reuse existing utils, controllers, and Vuex actions.
-- No new npm dependencies without strong reason.
-- No automated tests — run `yarn lint` and verify manually with `yarn dev`.
-
-## Dev vs prod
-
-- Dev mode: `AT_DEVMODE=meow` → `cattr-develop` package id, `userData-develop` path.
-- Webpack must be built before `yarn dev`: `yarn build-development`.
-
-## Docs
-
-- Repo context: [AGENTS.md](../../AGENTS.md)
-- Human setup: [README.md](../../README.md)
+- Minimal diffs; match existing patterns
+- No commits unless explicitly requested
+- Never commit `.env`, secrets, `.project`, `.settings/`
+- License: SSPL-1.0
