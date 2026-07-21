@@ -16,10 +16,10 @@ if (process.platform === 'linux') {
 }
 
 /**
- * Object, containing Electron browser window
- * @type {Object}
+ * Electron browser window instance
+ * @type {import('electron').BrowserWindow|null}
  */
-let window = {};
+let window = null;
 
 // Second instance protection
 if (!config.isDeveloperModeEnabled) {
@@ -29,10 +29,13 @@ if (!config.isDeveloperModeEnabled) {
 
     app.on('second-instance', () => {
 
-      // Reveal window then focus on it if it's exists
-      if (!window)
+      // Reveal window then focus on it if it exists
+      if (!window || window.isDestroyed())
         return;
-      window.restore();
+
+      if (window.isMinimized())
+        window.restore();
+
       window.focus();
 
     });

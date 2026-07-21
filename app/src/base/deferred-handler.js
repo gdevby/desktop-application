@@ -179,3 +179,4 @@ const deferredIntervalsPush = async ({ manual = false } = {}) => {
 module.exports = { deferredIntervalsPush };
 
 OfflineMode.on('connection-restored', () => deferredIntervalsPush());
+OfflineMode.once('connection-ok', () => deferredIntervalsPush());
