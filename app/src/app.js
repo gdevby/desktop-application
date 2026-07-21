@@ -29,14 +29,12 @@ if (!config.isDeveloperModeEnabled) {
 
     app.on('second-instance', () => {
 
-      // Reveal window then focus on it if it exists
-      if (!window || window.isDestroyed())
+      const osIntegration = require('./base/os-integration');
+
+      if (!osIntegration.window || osIntegration.window.isDestroyed())
         return;
 
-      if (window.isMinimized())
-        window.restore();
-
-      window.focus();
+      osIntegration.windowFocus();
 
     });
 

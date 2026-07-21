@@ -1,7 +1,8 @@
-const { Property } = require('../models').db.models;
 const Log = require('../utils/log');
 
 const log = new Log('OfflineUser');
+
+const getPropertyModel = () => require('../models').db.models.Property;
 
 /**
  * Implements offline (local) user logic
@@ -25,7 +26,7 @@ class OfflineUser {
   static async readFromLocalStorage() {
 
     // Getting serialized local user data
-    const serializedUser = await Property.findOne({ where: { key: 'local_user' } });
+    const serializedUser = await getPropertyModel().findOne({ where: { key: 'local_user' } });
 
     // Check is database entry exists
     if (!serializedUser)
@@ -83,7 +84,7 @@ class OfflineUser {
   async commit() {
 
     const serialized = JSON.stringify(this.user);
-    const storedEntry = await Property.findOne({ where: { key: 'local_user' } });
+    const storedEntry = await getPropertyModel().findOne({ where: { key: 'local_user' } });
 
     // Update existing property if it is exists
     if (storedEntry) {
@@ -94,7 +95,7 @@ class OfflineUser {
     }
 
     // Create new one if it is not exists
-    const newEntry = new Property({ key: 'local_user', value: serialized });
+    const newEntry = new (getPropertyModel())({ key: 'local_user', value: serialized });
     await newEntry.save();
     return true;
 
