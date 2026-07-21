@@ -219,6 +219,13 @@ export default {
       max-height: 100%;
       overflow-x: hidden;
 
+      > * {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
       scroll-behavior: smooth;
     }
   }

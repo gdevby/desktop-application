@@ -152,6 +152,8 @@ export default {
   }
 
   .tasks {
+    flex: 1;
+    min-height: 0;
 
     .no-tasks {
       font-size: 1.1em;

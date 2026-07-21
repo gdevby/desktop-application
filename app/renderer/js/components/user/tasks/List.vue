@@ -9,40 +9,45 @@
     >
       {{ $t("Not synced intervals") }}: <span class="not-synced-intervals__amount">{{ notSyncedAmount }}</span>
     </div>
-    <template v-if="filteredTasks.length > 0">
-      <draggable
-        class="dragArea"
-        :class="{ dragArea: true }"
-        :options="{ draggable: '.drag' }"
-        @end="onEnd"
-      >
-        <transition-group
-          name="flip-list"
-          tag="div"
+    <div class="tasks-list">
+      <template v-if="filteredTasks.length > 0">
+        <draggable
+          class="dragArea"
+          :class="{ dragArea: true }"
+          :options="{ draggable: '.drag' }"
+          @end="onEnd"
         >
-          <task
-            v-for="(task, index) in filteredTasks"
-            :key="task.id"
-            :pin-order="task.pinOrder !== null ? task.pinOrder : false"
-            :class="{ drag: task.pinOrder !== null }"
-            :task="task"
-            :tracking-features="trackingFeatures"
-            :style="{ 'z-index': index }"
-            @load-task-position="loadTaskPosition($event)"
-          />
-        </transition-group>
-      </draggable>
-    </template>
-    <template v-else>
-      <p class="no-tasks">
-        <template v-if="searchPattern.length > 0">
-          {{ $t("There are no tasks for query") }} "{{ searchPattern }}"
-        </template>
-        <template v-else>
-          {{ $t("There are no tasks at all") }}
-        </template>
-      </p>
-    </template>
+          <transition-group
+            name="flip-list"
+            tag="div"
+          >
+            <task
+              v-for="(task, index) in filteredTasks"
+              :key="task.id"
+              :pin-order="task.pinOrder !== null ? task.pinOrder : false"
+              :class="{ drag: task.pinOrder !== null }"
+              :task="task"
+              :tracking-features="trackingFeatures"
+              :style="{ 'z-index': index }"
+              @load-task-position="loadTaskPosition($event)"
+            />
+          </transition-group>
+        </draggable>
+      </template>
+      <template v-else>
+        <p class="no-tasks">
+          <template v-if="searchPattern.length > 0">
+            {{ $t("There are no tasks for query") }} "{{ searchPattern }}"
+          </template>
+          <template v-else>
+            {{ $t("There are no tasks at all") }}
+          </template>
+        </p>
+      </template>
+    </div>
+    <div class="tasks-count">
+      {{ $t("Total tasks") }}: <span class="tasks-count__amount">{{ filteredTasks.length }}</span>
+    </div>
   </div>
 </template>
 
@@ -345,12 +350,36 @@ export default {
 @import "../../../../scss/imports/variables";
 
 .tasks {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+
+  .tasks-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
   .not-synced-intervals{
     padding: 0.7rem 1rem;
     font-size: 0.9rem;
     border-bottom: $--border-base;
     cursor: default;
     &__amount{
+      color: $--color-primary;
+    }
+  }
+
+  .tasks-count {
+    flex-shrink: 0;
+    padding: 0.7rem 1rem;
+    font-size: 0.9rem;
+    border-top: $--border-base;
+    background-color: #ffffff;
+    cursor: default;
+
+    &__amount {
       color: $--color-primary;
     }
   }

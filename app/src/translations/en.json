@@ -10,6 +10,7 @@
     "Sync already in progress": "Sync already in progress",
     "Send to server": "Send to server",
     "Nothing to sync": "Nothing to sync",
-    "Last error: %%": "Last error: %%"
+    "Last error: %%": "Last error: %%",
+    "Total tasks": "Total tasks"
   }
 }
