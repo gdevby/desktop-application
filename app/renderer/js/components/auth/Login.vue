@@ -94,6 +94,8 @@
 </template>
 
 <script>
+import { showIntegrationWarnings } from '../../utils/integration-warnings';
+
 export default {
   name: 'Login',
 
@@ -201,6 +203,7 @@ export default {
 
             await this.$ipc.request('projects/sync', {});
             const tasks = await this.$ipc.request('tasks/sync', {});
+            showIntegrationWarnings(this, tasks.body.warnings);
             this.$store.dispatch('syncTasks', tasks.body);
             const totalTime = await this.$ipc.request('time/total', {});
             this.$store.dispatch('totalTimeSync', totalTime.body);
@@ -236,6 +239,7 @@ export default {
         await this.$store.dispatch('authenticate');
         await this.$ipc.request('projects/sync', {});
         const tasks = await this.$ipc.request('tasks/sync', {});
+        showIntegrationWarnings(this, tasks.body.warnings);
         this.$store.dispatch('syncTasks', tasks.body);
         const totalTime = await this.$ipc.request('time/total', {});
         this.$store.dispatch('totalTimeSync', totalTime.body);

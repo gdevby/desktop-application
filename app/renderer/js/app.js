@@ -1,8 +1,8 @@
 import { ipcRenderer } from 'electron';
 import Vue from 'vue';
 import IPCRouter from '@amazingcat/electron-ipc-router';
-import * as Sentry from '@sentry/browser';
-import * as Integrations from '@sentry/integrations';
+import * as Sentry from '@sentry/electron/renderer';
+import { vueIntegration } from '@sentry/vue';
 import VueI18n from 'vue-i18n';
 import Element from 'element-ui';
 
@@ -56,7 +56,7 @@ Vue.use(Element);
     Sentry.init({
       dsn: sentryConfig.dsnFrontend,
       release: sentryConfig.release,
-      integrations: [new Integrations.Vue({ Vue, attachProps: true })],
+      integrations: [vueIntegration({ Vue, attachProps: true })],
 
       // Patching error report right before sending to normalize frontend paths
       beforeSend: data => {
@@ -98,7 +98,7 @@ Vue.use(Element);
     // Populate Sentry error reports with company identifier
     Vue.prototype.$ipc.serve(
       'auth/company-instance-fetched',
-      req => Sentry.configureScope(scope => scope.setTag('companyIdentifier', req.packet.body.cid)),
+      req => Sentry.getCurrentScope().setTag('companyIdentifier', req.packet.body.cid),
     );
 
 
@@ -129,4 +129,3 @@ Vue.use(Element);
   }).$mount('#app');
 
 })();
-

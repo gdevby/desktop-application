@@ -15,7 +15,7 @@ const log = new Log('OSIntegration');
  *
  * Possible "reason" parameter values:
  *  - "macos_no_accessibility_permissions" — Accessibility permissions is not granted in macOS
- *  - "wayland_is_not_supported" — Application runs on Wayland which we are not supporting yet
+ *  - "macos_no_capture_permission" — Screen capture permission is not granted in macOS
  */
 
 

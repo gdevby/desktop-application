@@ -9,7 +9,7 @@ const { resolve } = require('path');
 const chalk = require('chalk');
 const config = require('../base/config');
 
-const { Sentry: { Sentry } } = require('./sentry');
+const { Sentry } = require('./sentry');
 const ApiError = require("@cattr/node/src/errors/api");
 
 // Checkings logs directory availability

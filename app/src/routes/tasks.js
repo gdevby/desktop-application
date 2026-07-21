@@ -1,5 +1,6 @@
 const Logger = require('../utils/log');
 const Tasks = require('../controller/tasks');
+const Integrations = require('../controller/integrations');
 const {UIError} = require('../utils/errors');
 const Time = require('../controller/time');
 const UserPreferences = require('../base/user-preferences');
@@ -114,7 +115,11 @@ module.exports = router => {
 
       // Returning response
       log.debug('Tasks successfully synced');
-      return request.send(200, {tasks, highlights});
+      const warnings = request.packet.body?.offlineImport?.tasks
+        ? []
+        : await Integrations.getGitlabWarnings();
+
+      return request.send(200, { tasks, highlights, warnings });
 
     } catch (error) {
 

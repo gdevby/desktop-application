@@ -1,9 +1,48 @@
-const { router } = require('../routes');
+const { captureScreens, CaptureSession } = require('./screen-capture');
 const Log = require('./log');
 const { UIError } = require('./errors');
 const EMPTY_IMAGE = require('../constants/empty-screenshot');
 
 const log = new Log('Screenshot');
+
+let activeSession = null;
+
+/**
+ * Start a persistent screen-capture session.
+ *
+ * On Wayland this keeps a single PipeWire stream alive, so the permission
+ * dialog is shown only once for the whole tracking session.
+ * @return {Promise<void>}
+ */
+const startSession = async () => {
+  // Persistent session is enabled on Linux (Wayland and X11) to reduce
+  // xdg-desktop-portal dialogs. Other platforms keep using the one-shot
+  // captureScreens() fallback to avoid untested regressions.
+  if (process.platform !== 'linux')
+    return;
+
+  if (activeSession) {
+    await stopSession();
+  }
+  const session = new CaptureSession();
+  await session.start();
+  activeSession = session;
+};
+
+/**
+ * Stop the persistent screen-capture session and release all resources.
+ * @return {Promise<void>}
+ */
+const stopSession = async () => {
+  if (activeSession) {
+    try {
+      await activeSession.stop();
+    } catch (err) {
+      log.error('Error stopping screenshot session', err);
+    }
+    activeSession = null;
+  }
+};
 
 /**
  * Mockup for screenshot capture function
@@ -29,43 +68,38 @@ const makeScreenshotMockup = () => new Promise(resolve => {
  * @async
  * @returns {Promise<Buffer>} Captured screenshot
  */
-const makeScreenshot = () => Promise.resolve()
+const makeScreenshot = async () => {
 
-  // Requesting screenshots
-  .then(async () => {
+  const timeStart = Date.now();
+  let screenshot;
 
-    const timeStart = Date.now();
-    const res = await router.request('misc/capture-screenshot', {});
-
-    // Unsuccessful capture status
-    if (res.code !== 200) {
-
-      log.error(`ESCR501-${res.code}`, `Error in response from screenshot capture request: ${JSON.stringify(res.body)}`, true);
-      throw new UIError(res.code, `Error during screenshot capture request: ${res.body}`, `ESCR501-${res.code}`);
-
+  if (activeSession && activeSession.active) {
+    try {
+      screenshot = await activeSession.capture();
+    } catch (err) {
+      log.error('Session capture failed, falling back to one-shot capture', err);
+      try {
+        await activeSession.stop();
+      } catch (stopErr) {
+        log.error('Error stopping failed session', stopErr);
+      }
+      activeSession = null;
+      screenshot = await captureScreens();
     }
+  } else {
+    screenshot = await captureScreens();
+  }
 
-    // Capture request doesn't contain any screenshots
-    if (!res.body.screenshot)
-      throw new UIError(500, 'No screenshots were captured', 'ESCR502');
+  if (!screenshot)
+    throw new UIError(500, 'No screenshots were captured', 'ESCR502');
 
-    // Checking screenshot header
-    if (res.body.screenshot.indexOf('data:image/jpeg;base64,') !== 0) {
+  log.debug(`Captured in ${(Date.now() - timeStart)}ms`);
+  return screenshot;
 
-      log.error('ESCR503', 'Incorrect screenshot data URL signature received');
-      throw new UIError(500, 'Fetched screenshot with incorrect signature', 'ESCR503');
+};
 
-    }
-
-    // Remove Data URL header and create buffer
-    const screenshot = Buffer.from(res.body.screenshot.substring(23), 'base64');
-
-    log.debug(`Captured in ${(Date.now() - timeStart)}ms`);
-    return screenshot;
-
-  });
-
-/**
- * Screenshot capturing function
- */
-module.exports.makeScreenshot = (process.env.AT_MOCK_SCR === 'yes') ? makeScreenshotMockup : makeScreenshot;
+if (process.env.AT_MOCK_SCR === 'yes') {
+  module.exports = { makeScreenshot: makeScreenshotMockup, startSession: async () => {}, stopSession: async () => {} };
+} else {
+  module.exports = { makeScreenshot, startSession, stopSession };
+}

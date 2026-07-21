@@ -1,5 +1,3 @@
-/* eslint-disable import/prefer-default-export */
-
 /**
  * Adding a leading zero
  * @param  {Number} number Input number

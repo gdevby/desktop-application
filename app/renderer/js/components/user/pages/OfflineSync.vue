@@ -83,6 +83,7 @@
 <script>
 import {pack, unpack} from "msgpackr";
 import {zip} from "fflate";
+import { showIntegrationWarnings } from '../../../utils/integration-warnings';
 
 async function getIntervalsDigest(IntervalsArrayBuffer) {
   const hashBuffer = await crypto.subtle.digest("SHA-256", IntervalsArrayBuffer); // hash the message
@@ -244,6 +245,7 @@ export default {
       if (tasksRes.code !== 200) {
         await this.triggerErrorAlert(tasksRes.body, this.$t('Import error'));
       }
+      showIntegrationWarnings(this, tasksRes.body?.warnings);
       await this.$store.dispatch('syncProjects', projectsRes.body);
       await this.$store.dispatch('syncTasks', tasksRes.body);
       await this.showAlert(this.$t("Projects and tasks successfully imported"), this.$t('Import result'));

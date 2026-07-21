@@ -1,5 +1,3 @@
-/* eslint-disable import/prefer-default-export */
-
 /**
  * Delta between dates in seconds
  * @param {Date} dateA

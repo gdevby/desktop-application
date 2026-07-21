@@ -8,6 +8,13 @@ const appIcons = require('./utils/icons');
 const { WEBCONTENTS_ALLOWED_PROTOCOLS } = require('./constants/url');
 const userPreferences = require('./base/user-preferences');
 
+// Enable PipeWire/Wayland screen capture portal on Linux and let Ozone pick
+// the native platform (Wayland if available, otherwise X11).
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('enable-features', 'WebRTCPipeWireCapturer');
+  app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
+}
+
 /**
  * Object, containing Electron browser window
  * @type {Object}
@@ -63,9 +70,7 @@ app.once('ready', async () => {
     title: config.applicationTitle,
     webPreferences: {
       nodeIntegration: true,
-      enableRemoteModule: false,
       contextIsolation: false,
-      nativeWindowOpen: true,
     },
     icon: appIcons.DEFAULT,
 

@@ -44,7 +44,7 @@ const initMigrations = sequelize => new Promise((resolve, reject) => {
       // Import all of them as Sequelize models
       .forEach(file => {
 
-        // eslint-disable-next-line global-require, import/no-dynamic-require
+        // eslint-disable-next-line global-require
         const model = require(path.resolve(__dirname, './', file))(sequelize, Sequelize.DataTypes);
         module.exports.db.models[model.name] = model;
 

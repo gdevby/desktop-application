@@ -1,6 +1,6 @@
 const path = require('path');
 const mix = require('laravel-mix');
-const SentryWebpackPlugin = require('@sentry/webpack-plugin');
+const { sentryWebpackPlugin } = require('@sentry/webpack-plugin');
 
 mix.setPublicPath('./build');
 mix.disableNotifications();
@@ -38,26 +38,30 @@ if (mix.inProduction && process.env.MAKE_RELEASE) {
 
   mix.webpackConfig({
     plugins: [
-      new SentryWebpackPlugin({
+      sentryWebpackPlugin({
         include: 'build',
         urlPrefix: 'build/',
         ignore: ['mix-manifest.json', 'app.css.map'],
-        configFile: '.sentry.renderer',
-        release: `${packageManifest.name}@${packageManifest.version}`,
-        setCommits: { auto: true },
-        url: sentryConfiguration.url,
+        authToken: sentryConfiguration.rendererToken,
+        release: {
+          name: `${packageManifest.name}@${packageManifest.version}`,
+          setCommits: { auto: true },
+        },
         org: sentryConfiguration.org,
         project: sentryConfiguration.frontend.project,
+        url: sentryConfiguration.url,
       }),
-      new SentryWebpackPlugin({
+      sentryWebpackPlugin({
         include: 'app/src',
         urlPrefix: 'app/src/',
-        configFile: '.sentry.main',
-        release: `${packageManifest.name}@${packageManifest.version}`,
-        setCommits: { auto: true },
-        url: sentryConfiguration.url,
+        authToken: sentryConfiguration.mainToken,
+        release: {
+          name: `${packageManifest.name}@${packageManifest.version}`,
+          setCommits: { auto: true },
+        },
         org: sentryConfiguration.org,
         project: sentryConfiguration.backend.project,
+        url: sentryConfiguration.url,
       }),
     ],
   });

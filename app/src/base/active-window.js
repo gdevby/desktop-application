@@ -1,8 +1,33 @@
 const { EventEmitter } = require('events');
-const activeWindow = require('active-win');
 const Log = require('../utils/log');
 
 const log = new Log('ActiveWindow');
+
+const activeWinPromise = (async () => {
+
+  // active-win is only used for application monitoring on Windows.
+  // On Linux and macOS its native bindings are not needed and loading them
+  // causes unnecessary startup errors.
+  if (process.platform !== 'win32') {
+
+    log.debug('Active window tracking is not supported on this platform');
+    return null;
+
+  }
+
+  try {
+
+    const { activeWindow, activeWindowSync } = await import('active-win');
+    return { activeWindow, activeWindowSync };
+
+  } catch (err) {
+
+    log.error('active-win module is not available', err);
+    return null;
+
+  }
+
+})();
 
 /**
  * Polling interval
@@ -57,7 +82,10 @@ class ActiveWindow extends EventEmitter {
 
       try {
 
-        const window = await activeWindow();
+        const activeWin = await activeWinPromise;
+        if (!activeWin) return;
+
+        const window = await activeWin.activeWindow();
 
         // Detect changes
         if (

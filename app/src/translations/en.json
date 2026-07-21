@@ -7,6 +7,7 @@
     "%% intervals failed to sync": "%% intervals failed to sync",
     "%% of %% intervals synced": "%% of %% intervals synced",
     "Failed to sync intervals": "Failed to sync intervals",
+    "GitLab token expired. Update it in Cattr web settings to resume task sync.": "GitLab token expired. Update it in Cattr web settings to resume task sync.",
     "Sync already in progress": "Sync already in progress",
     "Send to server": "Send to server",
     "Nothing to sync": "Nothing to sync",

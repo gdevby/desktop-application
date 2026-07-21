@@ -150,7 +150,6 @@ const showBrowserNotification = async (screenshot, interval) => {
     skipTaskbar: true,
     webPreferences: {
       nodeIntegration: true,
-      enableRemoteModule: false,
       contextIsolation: false,
     },
     transparent: true,

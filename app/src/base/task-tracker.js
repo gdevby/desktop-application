@@ -450,9 +450,15 @@ class TaskTracker extends EventEmitter {
 
     // Enable active window tracking
     const trackingFeatures = await trackingFeature.getCurrentFeatures();
-    console.log(trackingFeatures);
     if (trackingFeatures.includes('APP_MONITORING'))
       activeWindow.start();
+
+    // Start a persistent screenshot session so Wayland shows the portal dialog once
+    try {
+      await Screenshot.startSession();
+    } catch (err) {
+      log.error('Failed to start screenshot session', err);
+    }
 
     // Dispatch corresponding event
     this.setTrackerStatus(true);
@@ -493,6 +499,13 @@ class TaskTracker extends EventEmitter {
     // Capturing & pushing interval, if it is longer than one second
     if (pushInterval && (ticks >= 1))
       await this.captureCurrentInterval(ticks);
+
+    // Stop the persistent screenshot session to release the portal stream
+    try {
+      await Screenshot.stopSession();
+    } catch (err) {
+      log.error('Failed to stop screenshot session', err);
+    }
 
     // Move current task to previous, reset active flag
     this.setTrackerStatus(false);

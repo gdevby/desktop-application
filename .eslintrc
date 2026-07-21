@@ -3,9 +3,9 @@
     "linebreak-style": ["error", "unix"]
   },
   "parserOptions": {
-    "ecmaVersion": "latest"
+    "ecmaVersion": "latest",
+    "sourceType": "module"
   },
-
   "env": {
     "es6": true
   }

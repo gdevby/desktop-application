@@ -25,7 +25,7 @@ module.exports = async params => {
   }
 
   // eslint-disable-next-line global-require
-  const electronNotarize = require('electron-notarize');
+  const electronNotarize = require('@electron/notarize');
 
   log('notarization triggered');
 
