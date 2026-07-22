@@ -38,46 +38,48 @@ const captureScreens = async () => {
     },
   });
 
-  await stitchWindow.loadURL('about:blank');
+  try {
 
-  const sources = await desktopCapturer.getSources({
-    types: ['screen'],
-    thumbnailSize: { width: maxDisplayWidth, height: maxDisplayHeight },
-  });
+    await stitchWindow.loadURL('about:blank');
 
-  if (!sources || sources.length === 0)
-    throw new UIError(500, 'No screen sources were found', 'ESCR504');
+    const sources = await desktopCapturer.getSources({
+      types: ['screen'],
+      thumbnailSize: { width: maxDisplayWidth, height: maxDisplayHeight },
+    });
 
-  const captures = sources.map((source, index) => {
+    if (!sources || sources.length === 0)
+      throw new UIError(500, 'No screen sources were found', 'ESCR504');
 
-    // Match the source to a display. When the portal gives us a display_id,
-    // use it; otherwise fall back to the source index.
-    const display = source.display_id
-      ? displays.find(d => String(d.id) === String(source.display_id))
-      : displays[index];
+    const captures = sources.map((source, index) => {
 
-    const targetSize = display
-      ? { width: display.size.width, height: display.size.height }
-      : source.thumbnail.getSize();
+      // Match the source to a display. When the portal gives us a display_id,
+      // use it; otherwise fall back to the source index.
+      const display = source.display_id
+        ? displays.find(d => String(d.id) === String(source.display_id))
+        : displays[index];
 
-    return {
-      width: targetSize.width,
-      height: targetSize.height,
-      dataUrl: source.thumbnail.toDataURL(),
-    };
+      const targetSize = display
+        ? { width: display.size.width, height: display.size.height }
+        : source.thumbnail.getSize();
 
-  });
+      return {
+        width: targetSize.width,
+        height: targetSize.height,
+        dataUrl: source.thumbnail.toDataURL(),
+      };
 
-  const totalWidth = captures.reduce((sum, capture) => sum + capture.width, 0);
-  const maxHeight = Math.max(...captures.map(capture => capture.height));
+    });
 
-  const images = captures.map(capture => ({
-    url: capture.dataUrl,
-    width: capture.width,
-    height: capture.height,
-  }));
+    const totalWidth = captures.reduce((sum, capture) => sum + capture.width, 0);
+    const maxHeight = Math.max(...captures.map(capture => capture.height));
 
-  const dataUrl = await stitchWindow.webContents.executeJavaScript(`
+    const images = captures.map(capture => ({
+      url: capture.dataUrl,
+      width: capture.width,
+      height: capture.height,
+    }));
+
+    const dataUrl = await stitchWindow.webContents.executeJavaScript(`
     new Promise((resolve, reject) => {
       const canvas = document.createElement('canvas');
       canvas.width = ${totalWidth};
@@ -106,17 +108,22 @@ const captureScreens = async () => {
     })
   `);
 
-  stitchWindow.close();
+    if (dataUrl.indexOf('data:image/jpeg;base64,') !== 0) {
 
-  if (dataUrl.indexOf('data:image/jpeg;base64,') !== 0) {
+      log.error('ESCR503', 'Incorrect screenshot data URL signature received');
+      throw new UIError(500, 'Screenshot with incorrect signature captured', 'ESCR503');
 
-    log.error('ESCR503', 'Incorrect screenshot data URL signature received');
-    throw new UIError(500, 'Screenshot with incorrect signature captured', 'ESCR503');
+    }
+
+    log.debug(`Captured in ${(Date.now() - timeStart)}ms`);
+    return Buffer.from(dataUrl.substring(23), 'base64');
+
+  } finally {
+
+    if (!stitchWindow.isDestroyed())
+      stitchWindow.close();
 
   }
-
-  log.debug(`Captured in ${(Date.now() - timeStart)}ms`);
-  return Buffer.from(dataUrl.substring(23), 'base64');
 
 };
 

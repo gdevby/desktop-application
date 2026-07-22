@@ -138,11 +138,25 @@ export default {
 
       this.syncInProgress = true;
 
+      const syncErrorMessages = {
+        projects: 'Failed to sync projects',
+        tasks: 'Failed to sync tasks',
+        time: 'Failed to sync time',
+      };
+
+      let syncStage = 'projects';
+
       try {
 
         await this.$ipc.request('projects/sync', {});
+
+        syncStage = 'tasks';
         const tasks = await this.$ipc.request('tasks/sync', {});
+
+        syncStage = 'intervals';
         const intervalsRes = await this.$ipc.request('interval/push-deferred', {}, 0);
+
+        syncStage = 'time';
         const totalTime = await this.$ipc.request('time/total', {});
 
         this.$store.dispatch('totalTimeSync', totalTime.body);
@@ -213,7 +227,7 @@ export default {
 
         this.$message({
           type: 'error',
-          message: this.$t('Failed to sync intervals'),
+          message: this.$t(syncErrorMessages[syncStage] || 'Failed to sync intervals'),
         });
 
       } finally {

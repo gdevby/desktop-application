@@ -34,7 +34,7 @@ module.exports.getGitlabWarnings = async () => {
       if (error.statusCode >= 500 || error.statusCode === 422) {
         return [{
           integration: 'gitlab',
-          code: 'token_invalid',
+          code: 'server_error',
           message: error.message,
         }];
       }

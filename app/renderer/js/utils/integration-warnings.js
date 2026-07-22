@@ -15,8 +15,12 @@ export function showIntegrationWarnings(vue, warnings) {
       return;
     }
 
+    const messageKey = warning.code === 'server_error'
+      ? 'gitlab.warning.server_error'
+      : 'gitlab.warning.token_expired';
+
     vue.$alert(
-      vue.$t('gitlab.warning.token_expired'),
+      warning.message || vue.$t(messageKey),
       vue.$t('gitlab.warning.title'),
       {
         type: 'warning',
