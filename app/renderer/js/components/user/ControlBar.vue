@@ -53,7 +53,6 @@
 
 <script>
 import { clipboard } from 'electron';
-import { showIntegrationWarnings } from '../../utils/integration-warnings';
 
 export default {
 
@@ -143,7 +142,6 @@ export default {
 
         await this.$ipc.request('projects/sync', {});
         const tasks = await this.$ipc.request('tasks/sync', {});
-        showIntegrationWarnings(this, tasks.body.warnings);
         const intervalsRes = await this.$ipc.request('interval/push-deferred', {}, 0);
         const totalTime = await this.$ipc.request('time/total', {});
 

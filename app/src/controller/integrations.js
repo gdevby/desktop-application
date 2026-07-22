@@ -25,8 +25,20 @@ module.exports.getGitlabWarnings = async () => {
 
   } catch (error) {
 
-    if (error instanceof api.ApiError && (error.statusCode === 404 || error.statusCode === 403)) {
-      return [];
+    if (error instanceof api.ApiError) {
+
+      if (error.statusCode === 404 || error.statusCode === 403) {
+        return [];
+      }
+
+      if (error.statusCode >= 500 || error.statusCode === 422) {
+        return [{
+          integration: 'gitlab',
+          code: 'token_invalid',
+          message: error.message,
+        }];
+      }
+
     }
 
     if (error instanceof api.NetworkError) {

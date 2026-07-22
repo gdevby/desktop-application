@@ -25,3 +25,4 @@ require('./translation.js')(router);
 require('./user-preferences.js')(router);
 require('./offline-mode.js')(router);
 require('./intervals.js')(router);
+require('./integrations.js')(router);

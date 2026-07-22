@@ -7,7 +7,7 @@
 <script>
 import Loader from './Loader.vue';
 import Message from './Message.vue';
-import { showIntegrationWarnings } from '../utils/integration-warnings';
+import { fetchAndShowIntegrationWarnings } from '../utils/integration-warnings';
 import { debounce } from "lodash";
 
 export default {
@@ -96,7 +96,6 @@ export default {
 
       const projects = await this.$ipc.request('projects/sync', {});
       const tasks = await this.$ipc.request('tasks/sync', {});
-      showIntegrationWarnings(this, tasks.body.warnings);
       this.$store.dispatch('syncTasks', tasks.body);
       this.$store.dispatch('syncProjects', projects.body);
       const totalTime = await this.$ipc.request('time/total', {});
@@ -104,6 +103,8 @@ export default {
       this.$store.dispatch('hideLoader');
 
       this.$router.push({ name: 'user.tasks' });
+      await this.$nextTick();
+      await fetchAndShowIntegrationWarnings(this);
 
     }
 

@@ -94,7 +94,7 @@
 </template>
 
 <script>
-import { showIntegrationWarnings } from '../../utils/integration-warnings';
+import { fetchAndShowIntegrationWarnings } from '../../utils/integration-warnings';
 
 export default {
   name: 'Login',
@@ -203,12 +203,13 @@ export default {
 
             await this.$ipc.request('projects/sync', {});
             const tasks = await this.$ipc.request('tasks/sync', {});
-            showIntegrationWarnings(this, tasks.body.warnings);
             this.$store.dispatch('syncTasks', tasks.body);
             const totalTime = await this.$ipc.request('time/total', {});
             this.$store.dispatch('totalTimeSync', totalTime.body);
             this.$router.push({ name: 'user.tasks' });
             this.$store.dispatch('hideLoader');
+            await this.$nextTick();
+            await fetchAndShowIntegrationWarnings(this);
             return true;
 
           }
@@ -239,12 +240,14 @@ export default {
         await this.$store.dispatch('authenticate');
         await this.$ipc.request('projects/sync', {});
         const tasks = await this.$ipc.request('tasks/sync', {});
-        showIntegrationWarnings(this, tasks.body.warnings);
         this.$store.dispatch('syncTasks', tasks.body);
         const totalTime = await this.$ipc.request('time/total', {});
         this.$store.dispatch('totalTimeSync', totalTime.body);
         this.$router.push({ name: 'user.tasks' });
         await this.$ipc.request('offline-sync/get-public-key', {});
+        this.$store.dispatch('hideLoader');
+        await this.$nextTick();
+        await fetchAndShowIntegrationWarnings(this);
 
       } else {
 
