@@ -4,6 +4,7 @@ const Log = require('../utils/log');
 const Tracker = require('./task-tracker');
 const userPreferences = require('./user-preferences');
 const authentication = require('./authentication');
+const Screenshot = require('../utils/screenshot');
 const ScreenshotsState = require("../constants/ScreenshotsState");
 
 const log = new Log('OSIntegration');
@@ -180,6 +181,17 @@ class OSIntegration extends EventEmitter {
     }
 
     log.debug('Goodbye.');
+
+    try {
+
+      await Screenshot.stopSession();
+
+    } catch (err) {
+
+      log.error('Failed to stop screenshot session during exit', err);
+
+    }
+
     Log._closeLogStream();
     app.exit(0);
 

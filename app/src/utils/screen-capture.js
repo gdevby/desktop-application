@@ -1,6 +1,7 @@
 const { BrowserWindow, desktopCapturer, screen } = require('electron');
 const Log = require('./log');
 const { UIError } = require('./errors');
+const { isWayland } = require('./platform');
 
 const log = new Log('ScreenCapture');
 
@@ -183,8 +184,8 @@ class CaptureSession {
       // On Wayland the portal usually returns a single source for the whole
       // desktop, so we use only that source. On X11 and other platforms we
       // keep all sources so multi-monitor stitching still works.
-      const isWayland = process.platform === 'linux' && !!process.env.WAYLAND_DISPLAY;
-      this.sources = isWayland ? [sources[0]] : sources;
+      const isWaylandSession = isWayland();
+      this.sources = isWaylandSession ? [sources[0]] : sources;
 
       const sourceIds = this.sources.map(s => s.id);
 
@@ -226,7 +227,7 @@ class CaptureSession {
       this.active = true;
     } catch (err) {
       log.error('Failed to start capture session', err);
-      this.dispose();
+      await this.dispose();
       throw err;
     } finally {
       this.initializing = false;
@@ -349,10 +350,11 @@ class CaptureSession {
 
   /**
    * Dispose of the session, logging any errors instead of throwing.
+   * @return {Promise<void>}
    */
-  dispose() {
+  async dispose() {
     try {
-      this.stop();
+      await this.stop();
     } catch (err) {
       log.error('Error disposing capture session', err);
     }

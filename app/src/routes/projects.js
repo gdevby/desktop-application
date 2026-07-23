@@ -2,6 +2,7 @@ const Logger = require('../utils/log');
 const Projects = require('../controller/projects');
 const {UIError} = require('../utils/errors');
 const auth = require("../base/authentication");
+const Screenshot = require('../utils/screenshot');
 
 const log = new Logger('Router:Projects');
 log.debug('Loaded');
@@ -35,6 +36,9 @@ module.exports = router => {
       // Starting sync routine
       log.debug('Projects sync initiated by renderer');
       const projects = await Projects.syncProjects(request.packet.body?.offlineImport?.projects);
+
+      if (currentUser)
+        await Screenshot.startSessionForUser(currentUser);
 
       // Returning response
       log.debug('Projects successfully synced');

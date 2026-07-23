@@ -9,6 +9,7 @@ module.exports = () => {
   require('./screen-notie.js');
   require('./tray.js');
   require('./relaunch-on-logout.js');
+  require('./screenshot-session.js');
   require('./power-manager.js');
   require('./os-inactivity-handler.js');
   require('./usage-statistic');

@@ -2,31 +2,95 @@ const { captureScreens, CaptureSession } = require('./screen-capture');
 const Log = require('./log');
 const { UIError } = require('./errors');
 const EMPTY_IMAGE = require('../constants/empty-screenshot');
+const { isWayland } = require('./platform');
+const ScreenshotsState = require('../constants/ScreenshotsState');
+const { Project } = require('../models').db.models;
 
 const log = new Log('Screenshot');
 
 let activeSession = null;
+let pendingStart = null;
 
 /**
- * Start a persistent screen-capture session.
+ * @param {Object} user
+ * @returns {Promise<Boolean>}
+ */
+const userMayNeedScreenshots = async user => {
+
+  if (user.screenshotsState === ScreenshotsState.REQUIRED
+    || user.screenshotsState === ScreenshotsState.OPTIONAL)
+    return true;
+
+  const projectsRequiringScreenshots = await Project.count({
+    where: { screenshotsState: ScreenshotsState.REQUIRED },
+  });
+
+  return projectsRequiringScreenshots > 0;
+
+};
+
+/**
+ * Start a persistent screen-capture session on Wayland.
  *
- * On Wayland this keeps a single PipeWire stream alive, so the permission
- * dialog is shown only once for the whole tracking session.
+ * Keeps a single PipeWire stream alive so the xdg-desktop-portal permission
+ * dialog is shown only once per application session.
  * @return {Promise<void>}
  */
 const startSession = async () => {
-  // Persistent session is enabled on Linux (Wayland and X11) to reduce
-  // xdg-desktop-portal dialogs. Other platforms keep using the one-shot
-  // captureScreens() fallback to avoid untested regressions.
-  if (process.platform !== 'linux')
+
+  if (!isWayland())
     return;
 
-  if (activeSession) {
-    await stopSession();
+  if (activeSession?.active)
+    return;
+
+  if (pendingStart)
+    return pendingStart;
+
+  pendingStart = (async () => {
+
+    const session = new CaptureSession();
+
+    try {
+
+      await session.start();
+      activeSession = session;
+
+    } finally {
+
+      pendingStart = null;
+
+    }
+
+  })();
+
+  return pendingStart;
+
+};
+
+/**
+ * Start a persistent capture session when the user is allowed to take screenshots.
+ * @param {Object} user Current user object
+ * @return {Promise<void>}
+ */
+const startSessionForUser = async user => {
+
+  if (!user)
+    return;
+
+  if (!await userMayNeedScreenshots(user))
+    return;
+
+  try {
+
+    await startSession();
+
+  } catch (err) {
+
+    log.error('Failed to start screenshot session', err);
+
   }
-  const session = new CaptureSession();
-  await session.start();
-  activeSession = session;
+
 };
 
 /**
@@ -99,7 +163,17 @@ const makeScreenshot = async () => {
 };
 
 if (process.env.AT_MOCK_SCR === 'yes') {
-  module.exports = { makeScreenshot: makeScreenshotMockup, startSession: async () => {}, stopSession: async () => {} };
+  module.exports = {
+    makeScreenshot: makeScreenshotMockup,
+    startSession: async () => {},
+    startSessionForUser: async () => {},
+    stopSession: async () => {},
+  };
 } else {
-  module.exports = { makeScreenshot, startSession, stopSession };
+  module.exports = {
+    makeScreenshot,
+    startSession,
+    startSessionForUser,
+    stopSession,
+  };
 }

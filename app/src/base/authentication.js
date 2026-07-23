@@ -331,7 +331,6 @@ module.exports.isAuthenticationRequired = async () => {
 
     // Check token via real API request
     _currentUser = await this.getCurrentUser();
-    module.exports.events.emit('user-fetched', _currentUser);
 
     // .. if it's done, we're good to go w/out authentication
     return false;
