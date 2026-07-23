@@ -13,15 +13,27 @@ module.exports.getGitlabWarnings = async () => {
 
     const settings = await api.integrations.gitlab.userSettings();
 
-    if (!settings?.enabled || !settings?.auth_error) {
+    if (!settings?.enabled) {
       return [];
     }
 
-    return [{
-      integration: 'gitlab',
-      code: settings.auth_error.code,
-      message: settings.auth_error.message,
-    }];
+    if (settings.auth_error) {
+      return [{
+        integration: 'gitlab',
+        code: settings.auth_error.code,
+        message: settings.auth_error.message,
+      }];
+    }
+
+    if (!settings.api_key) {
+      return [{
+        integration: 'gitlab',
+        code: 'token_not_configured',
+        message: null,
+      }];
+    }
+
+    return [];
 
   } catch (error) {
 

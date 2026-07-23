@@ -1208,14 +1208,14 @@ __metadata:
 
 "@cattr/node@file:../node-cattr::locator=cattr%40workspace%3A.":
   version: 4.0.0-RC5
-  resolution: "@cattr/node@file:../node-cattr#../node-cattr::hash=2dd577&locator=cattr%40workspace%3A."
+  resolution: "@cattr/node@file:../node-cattr#../node-cattr::hash=1e9f84&locator=cattr%40workspace%3A."
   dependencies:
     axios: ^0.27.2
     form-data: ^4.0.0
   dependenciesMeta:
     eslint:
       unplugged: true
-  checksum: 7a5ffc907d665938bbc1aa289df08acf967ee4804852280f2401b969548d1ba257d2b5d8c1cbdfc91fc35fc5474a9e91194f95bdbd4de3db7426191c182f6ef4
+  checksum: 38002c062c4bdc7ffa4b86cf8e9a174823cae55c04bd8bda9f17cb80e4dd8a2601373438a3e8d310994e6e62b86a228eb705b51e3f9a10a06b9f53d8e92a3045
   languageName: node
   linkType: hard
 

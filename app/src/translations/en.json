@@ -12,6 +12,7 @@
     "Failed to sync time": "Failed to sync time",
     "GitLab token expired. Update it in Cattr web settings to resume task sync.": "GitLab token expired. Update it in Cattr web settings to resume task sync.",
     "gitlab.warning.title": "Warning",
+    "gitlab.warning.token_not_configured": "GitLab token is not configured. Set it in Cattr web settings.",
     "gitlab.warning.token_expired": "GitLab token expired. Update it in Cattr web settings to resume task sync.",
     "gitlab.warning.server_error": "Could not check GitLab integration status. Try again later or check Cattr server logs.",
     "Warning": "Warning",

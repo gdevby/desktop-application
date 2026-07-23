@@ -182,6 +182,7 @@
     "Failed to sync time": "Не удалось синхронизировать время",
     "GitLab token expired. Update it in Cattr web settings to resume task sync.": "Токен GitLab истёк. Обновите его в веб-настройках Cattr, чтобы возобновить синхронизацию задач.",
     "gitlab.warning.title": "Предупреждение",
+    "gitlab.warning.token_not_configured": "GitLab-токен не настроен. Укажите его в веб-настройках Cattr.",
     "gitlab.warning.token_expired": "Токен GitLab истёк. Обновите его в веб-настройках Cattr, чтобы возобновить синхронизацию задач.",
     "gitlab.warning.server_error": "Не удалось проверить статус интеграции GitLab. Повторите позже или проверьте логи сервера Cattr.",
     "Warning": "Предупреждение",
